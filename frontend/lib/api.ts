@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
 export interface Noticia {
   titulo: string
@@ -11,29 +11,22 @@ export interface Noticia {
 }
 
 export async function getNoticias(
-   categoria: string = "rcn",
-  limite: number = 3
+  categoria: string = "eltiempo",
+  limite: number = 6
 ): Promise<Noticia[]> {
-  const res = await fetch(
-    `${API_URL}/noticias?categoria=${categoria}&limite=${limite}`,
-    { next: { revalidate: 300 } } // refresca cada 5 minutos
-  )
+  const res = await fetch(`${API_URL}/api/noticias`, {
+    next: { revalidate: 86400 }
+  })
 
-  if (!res.ok) {
-    throw new Error("Error al obtener noticias")
-  }
-
+  if (!res.ok) throw new Error("Error al obtener noticias")
   return res.json()
 }
 
 export async function getProgramacion() {
-  const res = await fetch(`${API_URL}/programacion`, {
-    next: { revalidate: 86400 } // refresca cada minuto
+  const res = await fetch(`${API_URL}/api/programacion`, {
+    next: { revalidate: 60 }
   })
 
-  if (!res.ok) {
-    throw new Error("Error al obtener programación")
-  }
-
+  if (!res.ok) throw new Error("Error al obtener programación")
   return res.json()
 }

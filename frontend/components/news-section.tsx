@@ -1,7 +1,16 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { getNoticias, Noticia } from "@/lib/api";
+
+interface Noticia {
+  titulo: string
+  resumen: string | null
+  url: string
+  fecha: string | null
+  imagen: string | null
+  categoria: string | null
+  fuente: string | null
+}
 
 function formatFecha(fecha: string | null): string {
   if (!fecha) return "Reciente"
@@ -28,11 +37,62 @@ function categoriaLabel(categoria: string | null): string {
   return map[categoria ?? ""] ?? "GENERAL"
 }
 
+async function fetchNoticias(): Promise<Noticia[]> {
+  const FEED_URL = "https://www.eltiempo.com/rss/colombia.xml"
+
+  const res = await fetch(FEED_URL, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+    next: { revalidate: 86400 }
+  })
+
+  const xml = await res.text()
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
+
+  const noticias = await Promise.all(
+    items.slice(0, 6).map(async (item) => {
+      const content = item[1]
+
+      const titulo = content.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]
+        ?? content.match(/<title>(.*?)<\/title>/)?.[1]
+        ?? "Sin título"
+
+      const url = content.match(/<link>(.*?)<\/link>/)?.[1]
+        ?? content.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1]
+        ?? ""
+
+      const fecha = content.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? null
+
+      const resumen = content.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/s)?.[1]
+        ?? content.match(/<description>(.*?)<\/description>/s)?.[1]
+        ?? null
+
+      // Extraer og:image directamente
+      let imagen: string | null = null
+      try {
+        const artRes = await fetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0" },
+          next: { revalidate: 86400 }
+        })
+        const html = await artRes.text()
+        imagen = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/)?.[1]
+          ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/)?.[1]
+          ?? null
+      } catch {
+        imagen = null
+      }
+
+      return { titulo, url, fecha, resumen, imagen, categoria: "eltiempo", fuente: "EL TIEMPO" }
+    })
+  )
+
+  return noticias
+}
+
 export async function NewsSection() {
   let noticias: Noticia[] = []
 
   try {
-    noticias = await getNoticias("eltiempo", 6)
+    noticias = await fetchNoticias()
   } catch (error) {
     console.error("Error cargando noticias:", error)
   }

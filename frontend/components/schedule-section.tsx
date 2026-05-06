@@ -1,13 +1,42 @@
-import { getProgramacion } from "@/lib/api"
+"use client"
 
-export async function ScheduleSection() {
-  let programas: any[] = []
+import { useEffect, useState } from "react"
 
-  try {
-    programas = await getProgramacion()
-  } catch (error) {
-    console.error("Error cargando programación:", error)
-  }
+const PROGRAMACION = [
+  { hora_inicio: "07:00", hora_fin: "08:30", programa: "Noticiero Regional", locutor: "Pacho Rocha" },
+  { hora_inicio: "09:00", hora_fin: "12:00", programa: "Las Mañanas Superbacanas", locutor: "Eduardo Cogollo" },
+  { hora_inicio: "12:00", hora_fin: "15:00", programa: "Noticias y Música", locutor: "Feiber Martinez" },
+  { hora_inicio: "15:00", hora_fin: "18:00", programa: "La Tarde Superbacana", locutor: "Fauner Salas" },
+]
+
+function getHoraBogota() {
+  return new Date().toLocaleTimeString("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  })
+}
+
+function calcularActivos() {
+  const ahora = getHoraBogota()
+  return PROGRAMACION.map(p => ({
+    ...p,
+    activo: ahora >= p.hora_inicio && ahora < p.hora_fin
+  }))
+}
+
+export function ScheduleSection() {
+  const [programas, setProgramas] = useState(calcularActivos())
+
+  useEffect(() => {
+    // Recalcula cada minuto
+    const intervalo = setInterval(() => {
+      setProgramas(calcularActivos())
+    }, 60000)
+
+    return () => clearInterval(intervalo)
+  }, [])
 
   return (
     <section id="programacion" className="py-12 md:py-16 bg-secondary/50">
