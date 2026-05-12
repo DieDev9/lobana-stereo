@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   creator: 'Lobana Stereo',
   publisher: 'Lobana Stereo 96.8 FM',
   generator: 'v0.app',
+  verification: {
+    google: '1zBmmQg6nEfk6EP2P77FUf7DpX-TBXVM9TvqxdnYAGs',
+  },
   openGraph: {
     type: 'website',
     locale: 'es_CO',
